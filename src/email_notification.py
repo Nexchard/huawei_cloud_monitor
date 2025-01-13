@@ -99,7 +99,7 @@ class EmailNotification:
             </style>
         </head>
         <body>
-            <h1>华为云资源和余额监控报告</h1>
+            <h1>📢华为云资源和余额监控报告</h1>
         """
         
         # 添加所有账号的余额信息
@@ -174,7 +174,7 @@ class EmailNotification:
         return html if has_alert else None
 
     def send_email(self, subject, html_content):
-        """发送HTML格式的邮件"""
+        """发送HTML格式的邮件，包含附件"""
         if not self.enabled:
             logger.info("邮件通知未启用")
             return False
@@ -188,15 +188,31 @@ class EmailNotification:
             return False
             
         try:
-            logger.info(f"正在发送邮件到 {', '.join(self.smtp_to)}...")
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
+            # 生成当前日期
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            file_date = datetime.now().strftime('%Y%m%d')
+            
+            # 修改邮件标题格式
+            email_subject = f"华为云资源和账单汇总报告 ({current_date})"
+            
+            # 创建邮件对象
+            msg = MIMEMultipart('mixed')  # 修改为mixed类型以支持附件
+            msg['Subject'] = email_subject
             msg['From'] = self.smtp_from
             msg['To'] = ', '.join(self.smtp_to)
             
+            # 添加HTML正文
             html_part = MIMEText(html_content, 'html', 'utf-8')
             msg.attach(html_part)
             
+            # 创建HTML附件
+            attachment = MIMEText(html_content, 'html', 'utf-8')
+            attachment.add_header('Content-Disposition', 'attachment', 
+                                filename=f'华为云资源报告-{file_date}.html')
+            msg.attach(attachment)
+            
+            # 发送邮件
+            logger.info(f"正在发送邮件到 {', '.join(self.smtp_to)}...")
             with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
                 server.login(self.smtp_username, self.smtp_password)
                 server.send_message(msg)

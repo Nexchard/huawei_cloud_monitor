@@ -96,7 +96,7 @@ def main():
         logger.info("开始发送邮件通知...")
         email_content = email.format_all_accounts_message(all_account_data)
         if email_content:
-            if email.send_email("华为云资源和余额监控报告", email_content):
+            if email.send_email(None, email_content):
                 logger.info("邮件通知发送成功")
             else:
                 logger.error("邮件通知发送失败")
