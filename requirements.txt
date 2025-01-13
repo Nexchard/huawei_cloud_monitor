@@ -1,0 +1,4 @@
+huaweicloudsdkall
+python-dotenv
+mysql-connector-python
+requests 
