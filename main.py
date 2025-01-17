@@ -8,6 +8,7 @@ from src.email_notification import EmailNotification
 from src.db import Database
 from src.logger import logger
 from dotenv import load_dotenv
+from src.yunzhijia_notification import YunzhijiaNotification
 
 # 加载环境变量
 load_dotenv()
@@ -26,10 +27,12 @@ def main():
     # 初始化通知系统
     wework = WeworkNotification()
     email = EmailNotification()
+    yunzhijia = YunzhijiaNotification()
     
     # 记录通知系统状态
     logger.info(f"企业微信通知状态: {'启用' if wework.enabled else '未启用'}")
     logger.info(f"邮件通知状态: {'启用' if email.enabled else '未启用'}")
+    logger.info(f"云之家通知状态: {'启用' if yunzhijia.enabled else '未启用'}")
     
     # 获取所有华为云账号配置
     accounts = []
@@ -100,6 +103,16 @@ def main():
                 logger.info("邮件通知发送成功")
             else:
                 logger.error("邮件通知发送失败")
+    
+    if yunzhijia.enabled:
+        logger.info("开始发送云之家通知...")
+        yunzhijia.send_balance_notification(all_account_data)
+        for account_data in all_account_data:
+            if account_data.get('resources'):
+                yunzhijia.send_resource_notification(
+                    account_data['account_name'],
+                    account_data['resources']
+                )
 
 def process_resources(client, account_name):
     """处理单个账号的资源信息"""

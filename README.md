@@ -8,7 +8,7 @@
 - 资源监控：追踪各类云资源的到期时间
 - 余额监控：实时监控账户余额
 - 历史记录：保存资源和余额的历史变化
-- 多渠道通知：支持企业微信和邮件通知
+- 多渠道通知：支持企业微信、云之家和邮件通知
 - 自定义告警：可配置资源到期告警天数
 
 ## 系统架构
@@ -26,6 +26,7 @@ huawei_cloud/
     ├── logger.py         # 日志管理
     ├── notification.py   # 企业微信通知
     ├── email_notification.py  # 邮件通知
+    ├── yunzhijia_notification.py  # 云之家通知
     ├── resource_query.py  # 资源查询
     └── balance_query.py   # 余额查询
 ```
@@ -86,6 +87,16 @@ SMTP_FROM=sender@example.com
 SMTP_TO=receiver@example.com
 ```
 
+### 云之家配置
+```env
+YUNZHIJIA_ENABLED=true
+YUNZHIJIA_SEND_TO_ALL=false
+YUNZHIJIA_DEFAULT_BOT=your_bot_name
+YUNZHIJIA_BOT1_NAME=bot_name
+YUNZHIJIA_BOT1_WEBHOOK=webhook_url
+YUNZHIJIA_BOT1_ENABLED=true
+```
+
 ## 使用说明
 1. 启动监控
 ```bash
@@ -95,7 +106,7 @@ python main.py
 2. 监控内容
 - 资源监控：记录所有资源的到期时间，提前告警
 - 余额监控：记录账户余额变化
-- 通知功能：当资源即将到期或余额不足时发送通知
+- 通知功能：当资源即将到期或余额不足时通过企业微信、云之家或邮件发送通知
 
 3. 数据库表结构
 - resources：记录资源信息及历史变化
@@ -127,8 +138,18 @@ python main.py
    - 确认数据库服务是否运行
    - 检查连接信息是否正确
 
+4. 云之家通知失败
+   - 检查webhook地址是否正确
+   - 确认机器人是否启用
+   - 验证token是否有效
+
 ## 更新日志
-### v1.0.0 (2025-01-13)
+### v1.1.0 (2024-01-19)
+- 添加云之家通知支持
+- 优化消息格式
+- 支持余额汇总和资源分别通知
+
+### v1.0.0 (2024-01-13)
 - 初始版本发布
 - 支持多账号监控
 - 实现企业微信和邮件通知

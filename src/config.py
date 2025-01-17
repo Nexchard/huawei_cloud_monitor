@@ -37,6 +37,16 @@ class Config:
     # 资源告警配置
     RESOURCE_ALERT_DAYS = int(os.getenv('RESOURCE_ALERT_DAYS', '65'))
 
+    # 云之家配置
+    YUNZHIJIA_ENABLED = os.getenv('YUNZHIJIA_ENABLED', 'false').lower() == 'true'
+    YUNZHIJIA_SEND_TO_ALL = os.getenv('YUNZHIJIA_SEND_TO_ALL', 'false').lower() == 'true'
+    YUNZHIJIA_DEFAULT_BOT = os.getenv('YUNZHIJIA_DEFAULT_BOT', '')
+    
+    # 云之家机器人配置
+    YUNZHIJIA_BOT1_NAME = os.getenv('YUNZHIJIA_BOT1_NAME', '')
+    YUNZHIJIA_BOT1_WEBHOOK = os.getenv('YUNZHIJIA_BOT1_WEBHOOK', '')
+    YUNZHIJIA_BOT1_ENABLED = os.getenv('YUNZHIJIA_BOT1_ENABLED', 'false').lower() == 'true'
+
     @classmethod
     def log_config(cls):
         """输出配置信息到日志"""
@@ -69,6 +79,16 @@ class Config:
 
         # 告警配置日志
         logger.info(f"资源告警天数: {cls.RESOURCE_ALERT_DAYS}")
+
+        # 云之家配置日志
+        if cls.YUNZHIJIA_ENABLED:
+            logger.info("云之家通知已启用")
+            logger.info(f"默认机器人: {cls.YUNZHIJIA_DEFAULT_BOT}")
+            if cls.YUNZHIJIA_SEND_TO_ALL:
+                logger.info("发送给所有机器人: 是")
+        else:
+            logger.info("云之家通知未启用")
+
         logger.info("===============")
 
     @classmethod
