@@ -70,6 +70,9 @@ def main():
             for service_type, resource_list in resources.items():
                 for resource in resource_list:
                     try:
+                        # 如果缺少 project 字段，设置为 'default'
+                        if 'project' not in resource or not resource['project']:
+                            resource['project'] = 'default'
                         db.save_resource(account_name, resource)
                     except Exception as e:
                         logger.error(f"保存资源失败: {account_name} - {resource.get('name', '')}")
