@@ -8,9 +8,15 @@ from src.logger import logger
 import json
 
 def calculate_remaining_days(expire_time):
-    """计算资源的剩余天数"""
-    expire_date = datetime.strptime(expire_time.split('T')[0], '%Y-%m-%d')
-    remaining_days = (expire_date - datetime.now()).days
+    """计算资源的剩余天数，只使用日期进行计算"""
+    # 获取当前日期（不包含时间）
+    today = datetime.now().date()
+    
+    # 将到期时间转换为日期（不包含时间）
+    expire_date = datetime.strptime(expire_time.split('T')[0], '%Y-%m-%d').date()
+    
+    # 计算剩余天数
+    remaining_days = (expire_date - today).days
     return remaining_days
 
 def query_resources(ak, sk, account_name):
