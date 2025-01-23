@@ -40,28 +40,48 @@ class Database:
             connection.close()
 
     def import_sql_files(self):
-        """导入SQL文件以创建表"""
+        """导入SQL文件以创建表，检查表是否存在并自动导入缺失的表"""
         connection = self.get_connection()
         cursor = connection.cursor()
         try:
             cursor.execute(f"USE {Config.DB_NAME};")
-            # 使用utf-8编码读取SQL文件
-            sql_files = [
-                'sql/create_resources_table.sql',
-                'sql/create_balances_table.sql',
-                'sql/create_bills_table.sql'
-            ]
-            for sql_file in sql_files:
-                with open(sql_file, 'r', encoding='utf-8') as file:
-                    sql_script = file.read()
-                    for statement in sql_script.split(';'):
-                        if statement.strip():
-                            cursor.execute(statement)
+            
+            # 定义所有需要的表及其对应的SQL文件
+            required_tables = {
+                'resources': 'sql/create_resources_table.sql',
+                'account_balances': 'sql/create_balances_table.sql',
+                'account_bills': 'sql/create_bills_table.sql',
+                'stored_cards': 'sql/create_stored_cards_table.sql'
+            }
+            
+            # 获取当前数据库中存在的表
+            cursor.execute("SHOW TABLES")
+            existing_tables = {table[0] for table in cursor.fetchall()}
+            
+            # 检查并创建缺失的表
+            for table_name, sql_file in required_tables.items():
+                if table_name not in existing_tables:
+                    logger.info(f"检测到缺失表: {table_name}，正在创建...")
+                    try:
+                        with open(sql_file, 'r', encoding='utf-8') as file:
+                            sql_script = file.read()
+                            for statement in sql_script.split(';'):
+                                if statement.strip():
+                                    cursor.execute(statement)
+                            logger.info(f"表 {table_name} 创建成功")
+                    except Exception as e:
+                        logger.error(f"创建表 {table_name} 失败: {str(e)}")
+                        raise
+                else:
+                    logger.info(f"表 {table_name} 已存在")
+            
             connection.commit()
-            logger.info("SQL文件导入成功")
+            logger.info("数据库表检查和导入完成")
+            
         except Exception as e:
-            logger.error(f"导入SQL文件失败: {str(e)}")
+            logger.error(f"数据库表检查和导入失败: {str(e)}")
             connection.rollback()
+            raise
         finally:
             cursor.close()
             connection.close()
@@ -156,6 +176,37 @@ class Database:
             logger.info(f"保存账单信息成功: {account_name} - {bill_record['service_type']}")
         except Exception as e:
             logger.error(f"保存账单信息失败: {str(e)}")
+            connection.rollback()
+        finally:
+            cursor.close()
+            connection.close()
+
+    def save_stored_card(self, account_name, card, batch_number):
+        """保存储值卡信息到数据库"""
+        connection = self.get_connection()
+        cursor = connection.cursor()
+        try:
+            sql = """INSERT INTO stored_cards 
+                    (account_name, card_id, card_name, face_value, balance, 
+                    effective_time, expire_time, batch_number) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+            
+            values = (
+                account_name,
+                card['card_id'],
+                card['card_name'],
+                card['face_value'],
+                card['balance'],
+                card['effective_time'].replace('T', ' ').replace('Z', ''),
+                card['expire_time'].replace('T', ' ').replace('Z', ''),
+                batch_number
+            )
+            
+            cursor.execute(sql, values)
+            connection.commit()
+            logger.info(f"保存储值卡信息成功: {account_name} - {card['card_name']}")
+        except Exception as e:
+            logger.error(f"保存储值卡信息失败: {str(e)}")
             connection.rollback()
         finally:
             cursor.close()

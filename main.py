@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from src.yunzhijia_notification import YunzhijiaNotification
 from src.bill_query import query_bills
 from datetime import datetime
+from src.stored_card_query import query_stored_cards
 
 # 加载环境变量
 load_dotenv()
@@ -63,14 +64,16 @@ def main():
         
         logger.info(f"开始处理账号: {account_name}")
         
-        # 查询资源、余额和账单信息
+        # 查询资源、余额、账单和储值卡信息
         resource_result = query_resources(ak, sk, account_name)
         balance_result = query_balance(ak, sk, account_name)
         bill_result = query_bills(ak, sk, account_name)
+        stored_cards_result = query_stored_cards(ak, sk, account_name)
         
         resources = resource_result["data"] if resource_result["success"] else None
         balance = balance_result["data"] if balance_result["success"] else None
         bills = bill_result["data"] if bill_result["success"] else None
+        stored_cards = stored_cards_result["data"] if stored_cards_result["success"] else None
         
         # 保存到数据库
         if db and resources:
@@ -94,12 +97,20 @@ def main():
                 except Exception as e:
                     logger.error(f"保存账单失败: {account_name} - {record.get('service_type', '')}")
         
+        if db and stored_cards:
+            for card in stored_cards['cards']:
+                try:
+                    db.save_stored_card(account_name, card, batch_number)
+                except Exception as e:
+                    logger.error(f"保存储值卡失败: {account_name} - {card.get('card_name', '')}")
+        
         # 收集账号数据
         all_account_data.append({
             "account_name": account_name,
             "resources": resources,
             "balance": balance,
-            "bills": bills
+            "bills": bills,
+            "stored_cards": stored_cards
         })
     
     # 发送通知

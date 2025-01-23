@@ -59,6 +59,13 @@ class EmailNotification:
                     border-radius: 6px;
                     margin-bottom: 20px;
                 }}
+                .stored-card {{
+                    background: white;
+                    padding: 10px;
+                    margin: 10px 0;
+                    border-radius: 4px;
+                    border-left: 4px solid #4caf50;
+                }}
                 .balance h3 {{
                     margin-top: 0;
                 }}
@@ -126,8 +133,23 @@ class EmailNotification:
         for account_data in accounts_data:
             account_name = account_data['account_name']
             balance = account_data.get('balance')
-            if balance:
-                html += f"<p><strong>{account_name}：</strong>{balance['total_amount']} {balance['currency']}</p>"
+            stored_cards = account_data.get('stored_cards')
+            
+            if balance or stored_cards:
+                html += f"<h3>{account_name}</h3>"
+                if balance:
+                    html += f"<p><strong>现金余额：</strong>{balance['total_amount']} {balance['currency']}</p>"
+                
+                if stored_cards and stored_cards.get('cards'):
+                    for card in stored_cards['cards']:
+                        html += f"""
+                        <div class='stored-card'>
+                            <p><strong>{card['card_name']}</strong></p>
+                            <p>余额：{card['balance']} CNY</p>
+                            <p>面值：{card['face_value']} CNY</p>
+                            <p>有效期至：{card['expire_time'].replace('T', ' ').replace('Z', '')}</p>
+                        </div>
+                        """
         html += "</div>"
         
         # 2. 账单汇总

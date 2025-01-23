@@ -100,11 +100,19 @@ class WeworkNotification:
         for account_data in accounts_data:
             account_name = account_data['account_name']
             balance = account_data.get('balance')
-            if balance:
+            stored_cards = account_data.get('stored_cards')
+            
+            if balance or stored_cards:
                 message.append(f"### 账号：{account_name}")
-                message.append(f"> **当前余额**：{balance['total_amount']} {balance['currency']}\n")
+                if balance:
+                    message.append(f"> **现金余额**：{balance['total_amount']} {balance['currency']}")
+                
+                if stored_cards and stored_cards.get('cards'):
+                    for card in stored_cards['cards']:
+                        message.append(f"> - {card['card_name']}：余额 {card['balance']} CNY (面值 {card['face_value']} CNY，有效期至 {card['expire_time'].replace('T', ' ').replace('Z', '')})")
+                message.append("")
         
-        return "\n".join(message) 
+        return "\n".join(message)
 
     def format_resource_message(self, account_name, services):
         """格式化单个账号的资源信息为markdown消息"""

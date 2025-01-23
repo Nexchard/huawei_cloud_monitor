@@ -80,18 +80,28 @@ class YunzhijiaNotification:
         return success
 
     def format_balance_message(self, accounts_data):
-        """格式化所有账号的余额信息为一条汇总消息"""
+        """格式化所有账号的余额信息为文本消息"""
         message = ["华为云账户余额汇总"]
         
         for account_data in accounts_data:
             account_name = account_data['account_name']
             balance = account_data.get('balance')
-            if balance:
-                account_message = [
-                    f"======= {account_name} =======",
-                    f"当前余额: {balance['total_amount']}{balance['currency']}"
-                ]
-                message.extend(account_message)
+            stored_cards = account_data.get('stored_cards')
+            
+            if balance or stored_cards:
+                message.extend([
+                    "",
+                    f"======= {account_name} ======="
+                ])
+                if balance:
+                    message.append(f"现金余额: {balance['total_amount']} {balance['currency']}")
+                
+                if stored_cards and stored_cards.get('cards'):
+                    for card in stored_cards['cards']:
+                        message.append(f"- {card['card_name']}")
+                        message.append(f"  余额: {card['balance']} CNY")
+                        message.append(f"  面值: {card['face_value']} CNY")
+                        message.append(f"  有效期至: {card['expire_time'].replace('T', ' ').replace('Z', '')}")
         
         return "\n".join(message)
 
