@@ -9,6 +9,8 @@ from src.db import Database
 from src.logger import logger
 from dotenv import load_dotenv
 from src.yunzhijia_notification import YunzhijiaNotification
+from src.bill_query import query_bills
+from datetime import datetime
 
 # 加载环境变量
 load_dotenv()
@@ -58,12 +60,14 @@ def main():
         
         logger.info(f"开始处理账号: {account_name}")
         
-        # 查询资源和余额信息
+        # 查询资源、余额和账单信息
         resource_result = query_resources(ak, sk, account_name)
         balance_result = query_balance(ak, sk, account_name)
+        bill_result = query_bills(ak, sk, account_name)
         
         resources = resource_result["data"] if resource_result["success"] else None
         balance = balance_result["data"] if balance_result["success"] else None
+        bills = bill_result["data"] if bill_result["success"] else None
         
         # 保存到数据库
         if db and resources:
@@ -80,17 +84,27 @@ def main():
         if db and balance:
             db.save_balance(account_name, balance)
         
+        if db and bills:
+            current_month = datetime.now().strftime('%Y-%m')
+            for record in bills['records']:
+                try:
+                    db.save_bill(account_name, record, current_month)
+                except Exception as e:
+                    logger.error(f"保存账单失败: {account_name} - {record.get('service_type', '')}")
+        
         # 收集账号数据
         all_account_data.append({
             "account_name": account_name,
             "resources": resources,
-            "balance": balance
+            "balance": balance,
+            "bills": bills
         })
     
     # 发送通知
     if wework.enabled:
         logger.info("开始发送企业微信通知...")
         wework.send_balance_notification(all_account_data)
+        wework.send_bill_notification(all_account_data)
         for account_data in all_account_data:
             if account_data.get('resources'):
                 wework.send_resource_notification(
@@ -110,6 +124,7 @@ def main():
     if yunzhijia.enabled:
         logger.info("开始发送云之家通知...")
         yunzhijia.send_balance_notification(all_account_data)
+        yunzhijia.send_bill_notification(all_account_data)
         for account_data in all_account_data:
             if account_data.get('resources'):
                 yunzhijia.send_resource_notification(

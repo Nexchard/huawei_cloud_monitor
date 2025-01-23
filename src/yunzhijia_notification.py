@@ -148,4 +148,45 @@ class YunzhijiaNotification:
         """每个账号单独发送资源信息通知"""
         resource_message = self.format_resource_message(account_name, resources)
         if resource_message:
-            self.send_message(resource_message)  # 每个账号发送一条消息 
+            self.send_message(resource_message)  # 每个账号发送一条消息
+
+    def format_bill_message(self, accounts_data):
+        """格式化所有账号的账单信息为文本消息"""
+        message = ["华为云按需计费账单汇总"]
+        
+        for account_data in accounts_data:
+            account_name = account_data['account_name']
+            bills = account_data.get('bills')
+            if bills and bills.get('records'):
+                message.extend([
+                    "",
+                    f"======= {account_name} =======",
+                    f"总金额: {bills['total_amount']} {bills['currency']}"
+                ])
+                
+                # 按项目分组展示
+                projects = {}
+                for record in bills['records']:
+                    project = record['project_name'] or 'default'
+                    if project not in projects:
+                        projects[project] = []
+                    projects[project].append(record)
+                
+                for project, records in projects.items():
+                    message.append(f"\n项目: {project}")
+                    for record in records:
+                        record_info = [
+                            f"服务类型: {record['service_type']}",
+                            f"区域: {record['region']}",
+                            f"金额: {record['amount']} {bills['currency']}"
+                        ]
+                        message.append("\n".join(record_info))
+                    message.append("")  # 添加空行分隔不同项目
+        
+        return "\n".join(message).rstrip()
+
+    def send_bill_notification(self, accounts_data):
+        """发送账单信息通知"""
+        bill_message = self.format_bill_message(accounts_data)
+        if bill_message:
+            self.send_message(bill_message) 

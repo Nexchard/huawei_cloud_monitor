@@ -178,3 +178,44 @@ class WeworkNotification:
         if resource_message:
             for bot in self.bots.values():
                 bot.send_message(resource_message, message_type='资源') 
+
+    def format_bill_message(self, accounts_data):
+        """格式化所有账号的账单信息为markdown消息"""
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        message = [
+            f"## 💰 华为云按需计费账单汇总",
+            f"生成时间：{current_time}\n"
+        ]
+        
+        for account_data in accounts_data:
+            account_name = account_data['account_name']
+            bills = account_data.get('bills')
+            if bills and bills.get('records'):
+                message.append(f"### 账号：{account_name}")
+                message.append(f"> **总金额**：{bills['total_amount']} {bills['currency']}\n")
+                
+                # 按项目分组展示
+                projects = {}
+                for record in bills['records']:
+                    project = record['project_name'] or 'default'
+                    if project not in projects:
+                        projects[project] = []
+                    projects[project].append(record)
+                
+                for project, records in projects.items():
+                    message.append(f"#### 项目：{project}")
+                    for record in records:
+                        message.extend([
+                            f"> **服务类型**：{record['service_type']}",
+                            f"> **区域**：{record['region']}",
+                            f"> **金额**：{record['amount']} {bills['currency']}\n"
+                        ])
+        
+        return "\n".join(message)
+
+    def send_bill_notification(self, accounts_data):
+        """发送账单信息通知"""
+        bill_message = self.format_bill_message(accounts_data)
+        if bill_message:
+            for bot in self.bots.values():
+                bot.send_message(bill_message, message_type='账单') 

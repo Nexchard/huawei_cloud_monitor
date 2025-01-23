@@ -20,8 +20,7 @@ class EmailNotification:
         self.alert_days = int(os.getenv('RESOURCE_ALERT_DAYS', '65'))
 
     def format_all_accounts_message(self, accounts_data):
-        """格式化所有账号的资源和余额信息为HTML邮件内容"""
-        
+        """格式化所有账号的资源、余额和账单信息为HTML邮件内容"""
         html = f"""
         <html>
         <head>
@@ -96,24 +95,76 @@ class EmailNotification:
                     font-size: 0.9em;
                     margin-bottom: 20px;
                 }}
+                .bill {{
+                    background: #e3f2fd;
+                    padding: 15px;
+                    border-radius: 6px;
+                    margin-bottom: 20px;
+                }}
+                .bill-project {{
+                    background: white;
+                    padding: 15px;
+                    margin: 10px 0;
+                    border-radius: 6px;
+                    border-left: 4px solid #2196f3;
+                }}
+                .bill-record {{
+                    margin: 10px 0;
+                    padding: 10px;
+                    background: #f5f5f5;
+                    border-radius: 4px;
+                }}
             </style>
         </head>
         <body>
-            <h1>📢华为云资源和余额监控报告</h1>
+            <h1>📢华为云资源和账单监控报告</h1>
         """
         
-        # 添加所有账号的余额信息
+        # 1. 余额汇总
+        html += "<h2>💳 账户余额汇总</h2>"
         html += "<div class='balance'>"
-        html += "<h3>账户余额汇总</h3>"
         for account_data in accounts_data:
             account_name = account_data['account_name']
             balance = account_data.get('balance')
             if balance:
-                html += f"<p><strong>账号：</strong>{account_name} - <span class='info'>{balance['total_amount']} {balance['currency']}</span></p>"
+                html += f"<p><strong>{account_name}：</strong>{balance['total_amount']} {balance['currency']}</p>"
         html += "</div>"
         
+        # 2. 账单汇总
+        has_bills = False
+        html += "<h2>💰 按需计费账单汇总</h2>"
+        for account_data in accounts_data:
+            account_name = account_data['account_name']
+            bills = account_data.get('bills')
+            if bills and bills.get('records'):
+                has_bills = True
+                html += f"<div class='bill'>"
+                html += f"<h3>账号：{account_name}</h3>"
+                html += f"<p><strong>总金额：</strong>{bills['total_amount']} {bills['currency']}</p>"
+                
+                # 按项目分组展示
+                projects = {}
+                for record in bills['records']:
+                    project = record['project_name'] or 'default'
+                    if project not in projects:
+                        projects[project] = []
+                    projects[project].append(record)
+                
+                for project, records in projects.items():
+                    html += f"<div class='bill-project'>"
+                    html += f"<h4>项目：{project}</h4>"
+                    for record in records:
+                        html += f"<div class='bill-record'>"
+                        html += f"<p><strong>服务类型：</strong>{record['service_type']}</p>"
+                        html += f"<p><strong>区域：</strong>{record['region']}</p>"
+                        html += f"<p><strong>金额：</strong>{record['amount']} {bills['currency']}</p>"
+                        html += "</div>"
+                    html += "</div>"
+                html += "</div>"
+        
+        # 3. 资源到期提醒
         has_alert = False
-        # 遍历所有账号，检查是否有需要告警的资源
+        html += "<h2>⚠️ 资源到期提醒</h2>"
         for account_data in accounts_data:
             account_name = account_data['account_name']
             account_has_alert = False
@@ -171,7 +222,7 @@ class EmailNotification:
         </html>
         """
         
-        return html if has_alert else None
+        return html if (has_bills or has_alert) else None
 
     def send_email(self, subject, html_content):
         """发送HTML格式的邮件，包含附件"""

@@ -46,16 +46,17 @@ class Database:
         try:
             cursor.execute(f"USE {Config.DB_NAME};")
             # 使用utf-8编码读取SQL文件
-            with open('sql/create_resources_table.sql', 'r', encoding='utf-8') as file:
-                sql_script = file.read()
-                for statement in sql_script.split(';'):
-                    if statement.strip():
-                        cursor.execute(statement)
-            with open('sql/create_balances_table.sql', 'r', encoding='utf-8') as file:
-                sql_script = file.read()
-                for statement in sql_script.split(';'):
-                    if statement.strip():
-                        cursor.execute(statement)
+            sql_files = [
+                'sql/create_resources_table.sql',
+                'sql/create_balances_table.sql',
+                'sql/create_bills_table.sql'
+            ]
+            for sql_file in sql_files:
+                with open(sql_file, 'r', encoding='utf-8') as file:
+                    sql_script = file.read()
+                    for statement in sql_script.split(';'):
+                        if statement.strip():
+                            cursor.execute(statement)
             connection.commit()
             logger.info("SQL文件导入成功")
         except Exception as e:
@@ -126,6 +127,35 @@ class Database:
             logger.info(f"保存余额信息成功: {account_name} - {balance.get('total_amount', 0)} {balance.get('currency', 'CNY')}")
         except Exception as e:
             logger.error(f"保存余额信息失败: {str(e)}")
+            connection.rollback()
+        finally:
+            cursor.close()
+            connection.close()
+
+    def save_bill(self, account_name, bill_record, cycle):
+        """保存账单信息到数据库"""
+        connection = self.get_connection()
+        cursor = connection.cursor()
+        try:
+            sql = """INSERT INTO account_bills 
+                    (account_name, project_name, service_type, region, amount, currency, cycle) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+            
+            values = (
+                account_name,
+                bill_record['project_name'],
+                bill_record['service_type'],
+                bill_record['region'],
+                bill_record['amount'],
+                bill_record.get('currency', 'CNY'),
+                cycle
+            )
+            
+            cursor.execute(sql, values)
+            connection.commit()
+            logger.info(f"保存账单信息成功: {account_name} - {bill_record['service_type']}")
+        except Exception as e:
+            logger.error(f"保存账单信息失败: {str(e)}")
             connection.rollback()
         finally:
             cursor.close()

@@ -1,5 +1,11 @@
 # 华为云资源监控系统
 
+## 功能概述
+该系统用于监控华为云账号的资源使用情况，包括：
+1. 资源到期提醒
+2. 账户余额查询
+3. 按需计费账单查询
+
 ## 项目简介
 该系统用于监控多个华为云账号的资源使用情况和账户余额，并通过企业微信和邮件发送告警通知。
 
@@ -50,67 +56,102 @@ pip install -r requirements.txt
 - 告警阈值设置
 
 ## 配置说明
-### 华为云账号配置
-```env
-ACCOUNT1_NAME=account1
-ACCOUNT1_AK=your_ak
-ACCOUNT1_SK=your_sk
+### 环境变量配置 (.env)
+1. 华为云账户配置
+```
+ACCOUNT1_NAME=账号名称
+ACCOUNT1_AK=Access Key
+ACCOUNT1_SK=Secret Key
 ```
 
-### 数据库配置
-```env
-ENABLE_DATABASE=true
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=huaweicloud_monitor
+2. 数据库配置
+```
+ENABLE_DATABASE=true/false
+DB_HOST=数据库主机
+DB_PORT=数据库端口
+DB_USER=数据库用户名
+DB_PASSWORD=数据库密码
+DB_NAME=数据库名称
 ```
 
-### 企业微信配置
-```env
-WEWORK_ENABLED=true
-WEWORK_SEND_TO_ALL=false
-WEWORK_DEFAULT_BOT=your_bot_name
-WECHAT_BOT1_NAME=bot_name
-WECHAT_BOT1_WEBHOOK=webhook_url
+3. 通知配置
+- 企业微信配置
+```
+WEWORK_ENABLED=true/false
+WEWORK_DEFAULT_BOT=默认机器人名称
+WECHAT_BOT1_NAME=机器人名称
+WECHAT_BOT1_WEBHOOK=Webhook地址
 ```
 
-### 邮件配置
-```env
-SMTP_ENABLED=true
-SMTP_SERVER=smtp.example.com
-SMTP_PORT=465
-SMTP_USERNAME=your_email
-SMTP_PASSWORD=your_password
-SMTP_FROM=sender@example.com
-SMTP_TO=receiver@example.com
+- 云之家配置
+```
+YUNZHIJIA_ENABLED=true/false
+YUNZHIJIA_DEFAULT_BOT=默认机器人名称
+YUNZHIJIA_BOT1_NAME=机器人名称
+YUNZHIJIA_BOT1_WEBHOOK=Webhook地址
 ```
 
-### 云之家配置
-```env
-YUNZHIJIA_ENABLED=true
-YUNZHIJIA_SEND_TO_ALL=false
-YUNZHIJIA_DEFAULT_BOT=your_bot_name
-YUNZHIJIA_BOT1_NAME=bot_name
-YUNZHIJIA_BOT1_WEBHOOK=webhook_url
-YUNZHIJIA_BOT1_ENABLED=true
+- 邮件配置
+```
+SMTP_ENABLED=true/false
+SMTP_SERVER=SMTP服务器
+SMTP_PORT=SMTP端口
+SMTP_USERNAME=邮箱用户名
+SMTP_PASSWORD=邮箱密码
+SMTP_FROM=发件人地址
+SMTP_TO=收件人地址列表(逗号分隔)
 ```
 
-## 使用说明
-1. 启动监控
+## 数据库表结构
+
+### 资源表 (resources)
+```sql
+字段说明见 sql/create_resources_table.sql
+```
+
+### 余额表 (account_balances)
+```sql
+字段说明见 sql/create_balances_table.sql
+```
+
+### 账单表 (account_bills)
+```sql
+字段说明见 sql/create_bills_table.sql
+```
+
+## 通知内容
+
+### 资源到期提醒
+- 显示即将到期的资源信息
+- 包含资源名称、区域、到期时间、剩余天数等
+- 按服务类型分组展示
+
+### 余额通知
+- 显示所有账号的当前余额
+- 包含账号名称和余额金额
+
+### 账单通知
+- 显示所有账号的按需计费账单信息
+- 不包含金额为0的记录
+- 不包含子客户的账单
+- 按账号和项目分组展示
+- 包含服务类型、区域和消费金额
+
+## 通知格式
+1. 企业微信：使用 markdown 格式，支持标题、加粗等样式
+2. 云之家：使用文本格式，使用特殊字符分隔不同部分
+3. 邮件：使用 HTML 格式，支持样式和附件
+
+## 运行方式
 ```bash
 python main.py
 ```
 
-2. 监控内容
-- 资源监控：记录所有资源的到期时间，提前告警
-- 余额监控：记录账户余额变化
-- 通知功能：当资源即将到期或余额不足时通过企业微信、云之家或邮件发送通知
-
-3. 数据库表结构
-- resources：记录资源信息及历史变化
-- account_balances：记录账户余额历史
+## 注意事项
+1. 确保所有必要的环境变量都已正确配置
+2. 数据库需要提前创建并授予适当权限
+3. 通知机器人的 webhook 地址需要确保有效
+4. 建议通过定时任务定期执行脚本
 
 ## 告警规则
 - 资源到期提醒：默认提前65天告警
@@ -118,12 +159,6 @@ python main.py
   - 剩余15天内：高危警告
   - 剩余30天内：中度警告
   - 剩余65天内：提前提醒
-
-## 注意事项
-1. 数据库备份：建议定期备份数据库
-2. 密钥安全：请妥善保管华为云AK/SK
-3. 权限控制：确保数据库用户具有适当权限
-4. 日志管理：定期检查系统日志
 
 ## 常见问题
 1. 企业微信通知失败
