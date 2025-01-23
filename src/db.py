@@ -66,7 +66,7 @@ class Database:
             cursor.close()
             connection.close()
 
-    def save_resource(self, account_name, resource):
+    def save_resource(self, account_name, resource, batch_number):
         """保存资源信息到数据库，保留历史记录"""
         connection = self.get_connection()
         cursor = connection.cursor()
@@ -77,11 +77,10 @@ class Database:
             if missing_fields:
                 raise ValueError(f"资源数据缺少必要字段: {missing_fields}")
 
-            # 修改为直接INSERT，不使用ON DUPLICATE KEY UPDATE
             sql = """INSERT INTO resources 
                     (account_name, resource_name, resource_id, service_type, 
-                    region, expire_time, project_name, remaining_days) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                    region, expire_time, project_name, remaining_days, batch_number) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             
             values = (
                 account_name,
@@ -91,7 +90,8 @@ class Database:
                 resource['region'],
                 resource['expire_time'].replace('T', ' ').replace('Z', ''),
                 resource['project'],
-                resource['remaining_days']
+                resource['remaining_days'],
+                batch_number
             )
             
             cursor.execute(sql, values)
@@ -105,23 +105,22 @@ class Database:
             cursor.close()
             connection.close()
 
-    def save_balance(self, account_name, balance):
+    def save_balance(self, account_name, balance, batch_number):
         """保存余额信息到数据库，保留历史记录"""
         connection = self.get_connection()
         cursor = connection.cursor()
         try:
-            # 修改为INSERT，不使用ON DUPLICATE KEY UPDATE
             sql = """INSERT INTO account_balances 
-                    (account_name, total_amount, currency) 
-                    VALUES (%s, %s, %s)"""
+                    (account_name, total_amount, currency, batch_number) 
+                    VALUES (%s, %s, %s, %s)"""
             
             values = (
                 account_name,
                 balance.get('total_amount', 0),
-                balance.get('currency', 'CNY')
+                balance.get('currency', 'CNY'),
+                batch_number
             )
             
-            logger.debug(f"执行SQL: {sql} 参数: {values}")
             cursor.execute(sql, values)
             connection.commit()
             logger.info(f"保存余额信息成功: {account_name} - {balance.get('total_amount', 0)} {balance.get('currency', 'CNY')}")
@@ -132,14 +131,14 @@ class Database:
             cursor.close()
             connection.close()
 
-    def save_bill(self, account_name, bill_record, cycle):
+    def save_bill(self, account_name, bill_record, cycle, batch_number):
         """保存账单信息到数据库"""
         connection = self.get_connection()
         cursor = connection.cursor()
         try:
             sql = """INSERT INTO account_bills 
-                    (account_name, project_name, service_type, region, amount, currency, cycle) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+                    (account_name, project_name, service_type, region, amount, currency, cycle, batch_number) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
             
             values = (
                 account_name,
@@ -148,7 +147,8 @@ class Database:
                 bill_record['region'],
                 bill_record['amount'],
                 bill_record.get('currency', 'CNY'),
-                cycle
+                cycle,
+                batch_number
             )
             
             cursor.execute(sql, values)

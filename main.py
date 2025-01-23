@@ -53,6 +53,9 @@ def main():
     logger.info(f"共发现 {len(accounts)} 个华为云账号配置")
     all_account_data = []
     
+    # 在主函数中添加批次号生成
+    batch_number = datetime.now().strftime('%Y%m%d%H%M%S')
+    
     for account in accounts:
         account_name = account["name"]
         ak = account["ak"]
@@ -74,21 +77,20 @@ def main():
             for service_type, resource_list in resources.items():
                 for resource in resource_list:
                     try:
-                        # 如果缺少 project 字段，设置为 'default'
                         if 'project' not in resource or not resource['project']:
                             resource['project'] = 'default'
-                        db.save_resource(account_name, resource)
+                        db.save_resource(account_name, resource, batch_number)
                     except Exception as e:
                         logger.error(f"保存资源失败: {account_name} - {resource.get('name', '')}")
         
         if db and balance:
-            db.save_balance(account_name, balance)
+            db.save_balance(account_name, balance, batch_number)
         
         if db and bills:
             current_month = datetime.now().strftime('%Y-%m')
             for record in bills['records']:
                 try:
-                    db.save_bill(account_name, record, current_month)
+                    db.save_bill(account_name, record, current_month, batch_number)
                 except Exception as e:
                     logger.error(f"保存账单失败: {account_name} - {record.get('service_type', '')}")
         
