@@ -78,6 +78,12 @@ def main():
         stored_cards = stored_cards_result["data"] if stored_cards_result["success"] else None
         certificates = certificates_result["data"] if certificates_result["success"] else None
         
+        # 如果有证书数据，将其添加到resources中
+        if certificates:
+            if not resources:
+                resources = {}
+            resources['SSL证书'] = certificates
+        
         # 保存到数据库
         if db and resources:
             for service_type, resource_list in resources.items():
