@@ -113,13 +113,6 @@ def main():
                 except Exception as e:
                     logger.error(f"保存储值卡失败: {account_name} - {card.get('card_name', '')}")
         
-        if db and certificates:
-            for cert in certificates:
-                try:
-                    db.save_resource(account_name, cert, batch_number)
-                except Exception as e:
-                    logger.error(f"保存证书失败: {account_name} - {cert.get('name', '')}")
-        
         # 收集账号数据
         all_account_data.append({
             "account_name": account_name,
